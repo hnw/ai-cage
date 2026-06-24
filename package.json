@@ -1,0 +1,31 @@
+{
+  "name": "ai-cage",
+  "version": "1.0.0",
+  "description": "Universal, ephemeral, and secure AI Agent Sandbox for VS Code DevContainers.",
+  "main": "index.js",
+  "bin": {
+    "ai-cage": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "devcontainer",
+    "codex",
+    "claude",
+    "antigravity",
+    "opencode"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
