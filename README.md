@@ -32,7 +32,7 @@ AI エージェント（Claude Code / Codex CLI / OpenCode など）を、安全
 
 ## 必要なもの
 
-- Node.js 20 以上
+- Node.js 22 以上
 - Docker（または Colima）
 - VS Code
 - VS Code 拡張機能 **Dev Containers**
@@ -41,10 +41,10 @@ AI エージェント（Claude Code / Codex CLI / OpenCode など）を、安全
 
 ## インストール
 
-GitHubリポジトリから直接グローバルにインストールします。
+npm からグローバルにインストールします。
 
 ```bash
-npm install -g github:hnw/ai-cage
+npm install -g @hnw/ai-cage
 ```
 
 
@@ -231,6 +231,18 @@ npm run format
 ```
 
 コミット時には husky + lint-staged により、自動で Biome による lint/format チェックが実行されます。
+
+## リリース
+
+`np` を使用してリリースします。バージョン選択、タグ打ち、GitHub Release 作成はローカルで行い、実際の npm publish は GitHub Actions で実行されます。
+
+```bash
+npm run release
+```
+
+実行後、タグが push されると `.github/workflows/publish.yml` が起動し、Trusted Publishing 経由で npm へ公開されます。
+
+> **メンテナ向け**: npm 側で Trusted Publishing の設定が必要です。`Access` → `Trusted publisher` から `hnw/ai-cage` リポジトリの `publish.yml` ワークフローを登録してください。
 
 ## ライセンス
 

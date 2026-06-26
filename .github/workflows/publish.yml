@@ -1,26 +1,24 @@
-name: CI
+name: Publish to npm
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    tags:
+      - 'v*'
 
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22, 24]
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
+          node-version: 24
 
       - name: Install dependencies
         run: npm ci
@@ -30,3 +28,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance

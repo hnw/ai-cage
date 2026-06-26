@@ -1,17 +1,18 @@
 {
-  "name": "ai-cage",
+  "name": "@hnw/ai-cage",
   "version": "1.0.0",
   "description": "Universal, ephemeral, and secure AI Agent Sandbox for VS Code DevContainers.",
   "main": "index.js",
   "bin": {
-    "ai-cage": "./index.js"
+    "ai-cage": "index.js"
   },
   "files": ["index.js", "lib/", "README.md", "LICENSE"],
   "scripts": {
     "start": "node ./index.js",
     "test": "node --test",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "release": "np --no-tests --no-publish"
   },
   "lint-staged": {
     "*.{js,json}": ["biome check --write"]
@@ -29,18 +30,19 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hnw/ai-cage.git"
+    "url": "git+https://github.com/hnw/ai-cage.git"
   },
   "bugs": {
     "url": "https://github.com/hnw/ai-cage/issues"
   },
   "homepage": "https://github.com/hnw/ai-cage#readme",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "husky": "^9.1.0",
-    "lint-staged": "^15.2.0"
+    "lint-staged": "^15.2.0",
+    "np": "^11.2.1"
   }
 }
