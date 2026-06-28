@@ -15,7 +15,7 @@ const {
 const { resolveDockerHost } = require('./lib/docker');
 const logger = require('./lib/logger');
 const { prepareSandbox, computeSandboxDir } = require('./lib/sandbox');
-const { generateVscodeDir, launchVsCode } = require('./lib/vscode');
+const { generateWorkspaceFile, launchVsCode } = require('./lib/vscode');
 
 function main() {
   if (process.platform === 'win32') {
@@ -66,9 +66,6 @@ function main() {
     process.exit(1);
   }
 
-  const projectVscodeDir = path.join(currentDir, '.vscode');
-  const hasVscodeDir = fs.existsSync(projectVscodeDir);
-
   const devcontainerJson = generateDevcontainerJson(config, {
     projectName,
     currentDir,
@@ -104,12 +101,6 @@ function main() {
     return;
   }
 
-  if (hasVscodeDir) {
-    logger.warn(
-      '⚠️  警告: このプロジェクトには .vscode ディレクトリがあります。内容はサンドボックス側にコピーされますが、tasks.json は ai-cage の自動起動タスクで上書きされます。',
-    );
-  }
-
   if (config.mountAuth) {
     try {
       prepareAuthDirectories(homeDir, config.mountAgents);
@@ -126,11 +117,7 @@ function main() {
 
   try {
     prepareSandbox(sandboxDir);
-    generateVscodeDir(
-      sandboxDir,
-      config,
-      hasVscodeDir ? projectVscodeDir : undefined,
-    );
+    generateWorkspaceFile(sandboxDir, config, projectName);
     fs.writeFileSync(
       path.join(sandboxDir, '.devcontainer', 'devcontainer.json'),
       JSON.stringify(devcontainerJson, null, 2),

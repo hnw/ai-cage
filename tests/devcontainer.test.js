@@ -27,22 +27,28 @@ describe('devcontainer', () => {
     assert.strictEqual(json.remoteUser, 'vscode');
   });
 
-  it('mounts project as workspaceMount and .vscode as overlay', () => {
+  it('mounts project as workspaceMount and workspace file as overlay', () => {
     const json = generateDevcontainerJson(baseConfig, baseContext);
     assert.strictEqual(
       json.workspaceMount,
-      'source=/home/user/projects/my-project,target=/workspace/my-project,type=bind,consistency=cached',
+      'source=/home/user/projects/my-project,target=/workspace/my-project,type=bind,consistency=consistent',
     );
     assert.strictEqual(json.workspaceFolder, '/workspace/my-project');
     assert.strictEqual(json.mounts.length, 3);
-    const vscodeMount = json.mounts.find((m) =>
+    const workspaceFileMount = json.mounts.find((m) =>
       m.includes(
-        '/home/user/.ai-cage-sandboxes/sandbox-my-project-abc123/.vscode',
+        '/home/user/.ai-cage-sandboxes/sandbox-my-project-abc123/my-project.code-workspace',
       ),
     );
-    assert.ok(vscodeMount);
-    assert.ok(vscodeMount.includes('/workspace/my-project/.vscode'));
-    assert.ok(!vscodeMount.includes('tasks.json'));
+    assert.ok(workspaceFileMount);
+    assert.ok(
+      workspaceFileMount.includes('/home/vscode/my-project.code-workspace'),
+    );
+    assert.ok(!workspaceFileMount.includes('.vscode'));
+    const vscodeMount = json.mounts.find((m) =>
+      m.includes('/workspace/my-project/.vscode'),
+    );
+    assert.ok(!vscodeMount, '.vscode directory must not be mounted');
     const projectMount = json.mounts.find((m) =>
       m.includes('/home/user/projects/my-project'),
     );
@@ -68,7 +74,7 @@ describe('devcontainer', () => {
     assert.ok(
       json.mounts.some((m) =>
         m.includes(
-          '/home/user/.ai-cage-sandboxes/sandbox-my-project-abc123/.vscode',
+          '/home/user/.ai-cage-sandboxes/sandbox-my-project-abc123/my-project.code-workspace',
         ),
       ),
     );

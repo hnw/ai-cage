@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { generateTasksJson, generateVscodeDir } = require('../lib/vscode');
+const { generateTasksJson, generateWorkspaceFile } = require('../lib/vscode');
 
 describe('vscode', () => {
   let tmpDir;
@@ -53,16 +53,20 @@ describe('vscode', () => {
     );
   });
 
-  it('generates .vscode directory with tasks.json', () => {
-    generateVscodeDir(tmpDir, { autoStartCommand: 'opencode' });
-    assert.ok(fs.existsSync(path.join(tmpDir, '.vscode', 'tasks.json')));
-    const tasks = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, '.vscode', 'tasks.json'), 'utf8'),
+  it('generates workspace file with tasks', () => {
+    generateWorkspaceFile(
+      tmpDir,
+      { autoStartCommand: 'opencode' },
+      'my-project',
     );
-    assert.strictEqual(tasks.tasks[0].command, 'opencode');
+    const workspaceFilePath = path.join(tmpDir, 'my-project.code-workspace');
+    assert.ok(fs.existsSync(workspaceFilePath));
+    const workspace = JSON.parse(fs.readFileSync(workspaceFilePath, 'utf8'));
+    assert.strictEqual(workspace.folders[0].path, '/workspace/my-project');
+    assert.strictEqual(workspace.tasks.tasks[0].command, 'opencode');
   });
 
-  it('copies project .vscode contents into sandbox .vscode', () => {
+  it('does not copy project .vscode contents into workspace file', () => {
     const projectVscodeDir = path.join(tmpDir, 'project', '.vscode');
     fs.mkdirSync(projectVscodeDir, { recursive: true });
     fs.writeFileSync(
@@ -71,39 +75,20 @@ describe('vscode', () => {
     );
 
     const sandboxDir = path.join(tmpDir, 'sandbox');
-    generateVscodeDir(
+    generateWorkspaceFile(
       sandboxDir,
       { autoStartCommand: 'claude' },
-      projectVscodeDir,
+      'my-project',
     );
 
-    const copiedSettings = path.join(sandboxDir, '.vscode', 'settings.json');
-    assert.ok(fs.existsSync(copiedSettings));
-    const settings = JSON.parse(fs.readFileSync(copiedSettings, 'utf8'));
-    assert.strictEqual(settings['editor.tabSize'], 4);
-  });
-
-  it('overwrites project tasks.json with auto-start task', () => {
-    const projectVscodeDir = path.join(tmpDir, 'project', '.vscode');
-    fs.mkdirSync(projectVscodeDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(projectVscodeDir, 'tasks.json'),
-      JSON.stringify({ version: '2.0.0', tasks: [{ label: 'project task' }] }),
-    );
-
-    const sandboxDir = path.join(tmpDir, 'sandbox');
-    generateVscodeDir(
+    const workspaceFilePath = path.join(
       sandboxDir,
-      { autoStartCommand: 'claude' },
-      projectVscodeDir,
+      'my-project.code-workspace',
     );
-
-    const tasks = JSON.parse(
-      fs.readFileSync(path.join(sandboxDir, '.vscode', 'tasks.json'), 'utf8'),
-    );
-    assert.strictEqual(tasks.tasks.length, 1);
-    assert.strictEqual(tasks.tasks[0].label, 'Start claude');
-    assert.strictEqual(tasks.tasks[0].command, 'claude');
+    assert.ok(fs.existsSync(workspaceFilePath));
+    const workspace = JSON.parse(fs.readFileSync(workspaceFilePath, 'utf8'));
+    assert.strictEqual(workspace.settings, undefined);
+    assert.strictEqual(workspace.tasks.tasks[0].command, 'claude');
   });
 
   it('uses autoStartCommandLabel when provided', () => {
