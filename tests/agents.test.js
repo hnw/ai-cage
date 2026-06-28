@@ -9,6 +9,7 @@ const {
   validateAgentNames,
   buildNpmPackageList,
   buildPostCreateCommands,
+  buildAuthSubPaths,
 } = require('../lib/agents');
 
 describe('agents', () => {
@@ -61,5 +62,31 @@ describe('agents', () => {
     const commands = buildPostCreateCommands(['claude', 'antigravity']);
     assert.strictEqual(commands.length, 1);
     assert.match(commands[0], /antigravity\.google/);
+  });
+
+  it('builds auth sub paths for selected agents', () => {
+    const paths = buildAuthSubPaths(['claude', 'opencode']);
+    assert.ok(paths.includes('.claude'));
+    assert.ok(paths.includes('.config/opencode'));
+    assert.ok(paths.includes('.local/share/opencode'));
+    assert.ok(paths.includes('.cache/opencode'));
+    assert.ok(!paths.includes('.codex'));
+  });
+
+  it('reads auth paths from AGENTS definition', () => {
+    const claude = getAgent('claude');
+    assert.deepStrictEqual(claude.authPaths, ['.claude']);
+    const opencode = getAgent('opencode');
+    assert.deepStrictEqual(opencode.authPaths, [
+      '.config/opencode',
+      '.local/share/opencode',
+      '.cache/opencode',
+    ]);
+  });
+
+  it('deduplicates auth sub paths across agents', () => {
+    const paths = buildAuthSubPaths(['claude', 'codex']);
+    const uniquePaths = [...new Set(paths)];
+    assert.strictEqual(paths.length, uniquePaths.length);
   });
 });

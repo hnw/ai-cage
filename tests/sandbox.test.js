@@ -21,7 +21,6 @@ describe('sandbox', () => {
   it('prepares sandbox directories', () => {
     prepareSandbox(tmpDir);
     assert.ok(fs.existsSync(path.join(tmpDir, '.devcontainer')));
-    assert.ok(fs.existsSync(path.join(tmpDir, '.vscode')));
   });
 
   it('recreates existing sandbox', () => {

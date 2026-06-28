@@ -25,9 +25,42 @@ describe('cli', () => {
     assert.deepStrictEqual(options.agents, ['claude', 'codex']);
   });
 
+  it('parses --mount-agents', () => {
+    const options = parseArgs([
+      'node',
+      'ai-cage',
+      '--mount-agents',
+      'claude,opencode',
+    ]);
+    assert.deepStrictEqual(options.mountAgents, ['claude', 'opencode']);
+  });
+
   it('parses --no-mount-auth', () => {
     const options = parseArgs(['node', 'ai-cage', '--no-mount-auth']);
     assert.strictEqual(options.mountAuth, false);
+  });
+
+  it('parses --auto-start-command', () => {
+    const options = parseArgs([
+      'node',
+      'ai-cage',
+      '--auto-start-command',
+      'OPENCODE_ENABLE_EXA=1 opencode',
+    ]);
+    assert.strictEqual(
+      options.autoStartCommand,
+      'OPENCODE_ENABLE_EXA=1 opencode',
+    );
+  });
+
+  it('parses --auto-start-command-label', () => {
+    const options = parseArgs([
+      'node',
+      'ai-cage',
+      '--auto-start-command-label',
+      'OpenCode with Exa',
+    ]);
+    assert.strictEqual(options.autoStartCommandLabel, 'OpenCode with Exa');
   });
 
   it('parses --verbose and --quiet', () => {
@@ -65,6 +98,20 @@ describe('cli', () => {
     assert.throws(
       () => parseArgs(['node', 'ai-cage', '--agents']),
       /Option --agents requires a value/,
+    );
+  });
+
+  it('throws when --mount-agents lacks value', () => {
+    assert.throws(
+      () => parseArgs(['node', 'ai-cage', '--mount-agents']),
+      /Option --mount-agents requires a value/,
+    );
+  });
+
+  it('throws when --auto-start-command lacks value', () => {
+    assert.throws(
+      () => parseArgs(['node', 'ai-cage', '--auto-start-command']),
+      /Option --auto-start-command requires a value/,
     );
   });
 });

@@ -13,12 +13,9 @@ const {
   generateDevcontainerJson,
 } = require('./lib/devcontainer');
 const { resolveDockerHost } = require('./lib/docker');
+const logger = require('./lib/logger');
 const { prepareSandbox, computeSandboxDir } = require('./lib/sandbox');
-const {
-  generateTasksJson,
-  writeTasksJson,
-  launchVsCode,
-} = require('./lib/vscode');
+const { generateVscodeDir, launchVsCode } = require('./lib/vscode');
 
 function main() {
   if (process.platform === 'win32') {
@@ -37,6 +34,11 @@ function main() {
     process.exit(1);
   }
 
+  logger.configure({
+    quiet: options.quiet,
+    verbose: options.verbose,
+  });
+
   if (options.help) {
     printHelp();
     return;
@@ -54,19 +56,25 @@ function main() {
 
   let config;
   try {
-    config = loadConfig({ cwd: currentDir, cliOptions: options });
+    config = loadConfig({
+      cwd: currentDir,
+      cliOptions: options,
+      homeDir,
+    });
   } catch (err) {
-    console.error(`❌ Error: ${err.message}`);
+    logger.error(`❌ Error: ${err.message}`);
     process.exit(1);
   }
+
+  const projectVscodeDir = path.join(currentDir, '.vscode');
+  const hasVscodeDir = fs.existsSync(projectVscodeDir);
 
   const devcontainerJson = generateDevcontainerJson(config, {
     projectName,
     currentDir,
     homeDir,
+    sandboxDir,
   });
-
-  const tasksJson = generateTasksJson(config);
 
   if (options.printDevcontainerJson) {
     console.log(JSON.stringify(devcontainerJson, null, 2));
@@ -76,52 +84,82 @@ function main() {
   const dockerHost = resolveDockerHost();
 
   if (options.dryRun) {
-    console.log('\n==================================================');
-    console.log(' 👑 Welcome to AI Cage (Universal AI Sandbox) ');
-    console.log('==================================================');
-    console.log(`📦 Project: ${projectName}`);
-    console.log(`📁 Sandbox: ${sandboxDir}`);
-    console.log(`🐳 Docker Host: ${dockerHost || '(default)'}`);
-    console.log(`🤖 Agents: ${config.agents.join(', ')}`);
-    console.log(`🔒 Mount Auth: ${config.mountAuth ? 'yes' : 'no'}`);
-    if (config.autoStartAgent) {
-      console.log(`🚀 Auto-start Agent: ${config.autoStartAgent}`);
+    logger.info('\n==================================================');
+    logger.info(' 👑 Welcome to AI Cage (Universal AI Sandbox) ');
+    logger.info('==================================================');
+    logger.info(`📦 Project: ${projectName}`);
+    logger.info(`📁 Sandbox: ${sandboxDir}`);
+    logger.info(`🐳 Docker Host: ${dockerHost || '(default)'}`);
+    logger.info(`🤖 Agents: ${config.agents.join(', ')}`);
+    if (config.mountAuth) {
+      logger.info(`🔒 Mount Auth: ${config.mountAgents.join(', ')}`);
+    } else {
+      logger.info('🔒 Mount Auth: no');
     }
-    console.log('\n--- Generated devcontainer.json ---');
-    console.log(JSON.stringify(devcontainerJson, null, 2));
-    if (tasksJson) {
-      console.log('\n--- Generated .vscode/tasks.json ---');
-      console.log(JSON.stringify(tasksJson, null, 2));
-    }
+    logger.info(
+      `🚀 Auto-start Command: ${config.autoStartCommand || 'bash (default)'}`,
+    );
+    logger.info('\n--- Generated devcontainer.json ---');
+    logger.info(JSON.stringify(devcontainerJson, null, 2));
     return;
   }
 
+  if (hasVscodeDir) {
+    logger.warn(
+      '⚠️  警告: このプロジェクトには .vscode ディレクトリがあります。内容はサンドボックス側にコピーされますが、tasks.json は ai-cage の自動起動タスクで上書きされます。',
+    );
+  }
+
   if (config.mountAuth) {
-    prepareAuthDirectories(homeDir);
+    try {
+      prepareAuthDirectories(homeDir, config.mountAgents);
+    } catch (err) {
+      logger.error(
+        `❌ Error: Failed to create authentication directories. ${err.message}`,
+      );
+      if (options.verbose) {
+        logger.error(err);
+      }
+      process.exit(1);
+    }
   }
 
-  prepareSandbox(sandboxDir);
-  fs.writeFileSync(
-    path.join(sandboxDir, '.devcontainer', 'devcontainer.json'),
-    JSON.stringify(devcontainerJson, null, 2),
-  );
-  writeTasksJson(sandboxDir, tasksJson);
+  try {
+    prepareSandbox(sandboxDir);
+    generateVscodeDir(
+      sandboxDir,
+      config,
+      hasVscodeDir ? projectVscodeDir : undefined,
+    );
+    fs.writeFileSync(
+      path.join(sandboxDir, '.devcontainer', 'devcontainer.json'),
+      JSON.stringify(devcontainerJson, null, 2),
+    );
+  } catch (err) {
+    logger.error(
+      `❌ Error: Failed to prepare sandbox directory. ${err.message}`,
+    );
+    if (options.verbose) {
+      logger.error(err);
+    }
+    process.exit(1);
+  }
 
-  console.log('\n==================================================');
-  console.log(' 👑 Welcome to AI Cage (Universal AI Sandbox) ');
-  console.log('==================================================');
-  console.log(`🚀 Opening secure cage for project: [${projectName}]`);
+  logger.info(`🚀 Opening AI Cage for project: [${projectName}]`);
+  logger.info(`🤖 Agents: ${config.agents.join(', ')}`);
   if (dockerHost) {
-    console.log(`🔌 Routed via DOCKER_HOST: ${dockerHost}`);
+    logger.info(`🔌 Routed via DOCKER_HOST: ${dockerHost}`);
   }
-  console.log('🔒 Authentication Strategy: Secure Persistent Mounts');
+  if (config.mountAuth) {
+    logger.info(`🔒 Auth mounts: ${config.mountAgents.join(', ')}`);
+  }
 
   try {
     launchVsCode({ sandboxDir, projectName, dockerHost });
   } catch (err) {
-    console.error('❌ Error: Failed to launch VS Code.');
+    logger.error('❌ Error: Failed to launch VS Code.');
     if (options.verbose) {
-      console.error(err);
+      logger.error(err);
     }
     process.exit(1);
   }
